@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from lib_vm import VM, NET
-import logging, sys
+import logging, sys, json
 
 def init_log():
     # Creacion y configuracion del logger
@@ -16,10 +16,26 @@ def init_log():
 def pause():
     programPause = input("-- Press <ENTER> to continue...")
 
+with open('manage-p2.json', 'r') as file:
+    data_json = json.load(file)
+
+if data_json["num_servidores"]>5 or data_json["num_servidores"]<1:
+    print("Número de servidores inválido, introduzca en su archivo de configuración un número de servidores de 1 a 5.")
+else:
+    num_serv = data_json["num_servidores"]
+
+# debug = data_json["debug"]
+
+# if debug == True:
+# 	logging.basicConfig(level =logging.DEBUG)
+		
+# else:
+# 	logging.basicConfig(level =logging.INFO)
+     
 # Main
 init_log()
 print('CDPS - mensaje info1')
-print('Cristina Rodríguez, Elsa Sastre y Lucía Martínez')
+#print('Cristina Rodríguez, Elsa Sastre y Lucía Martínez')
 
 # Ejemplo de creacion de una maquina virtual
 s1 = VM('s1')
