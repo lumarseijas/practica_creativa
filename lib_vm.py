@@ -3,14 +3,17 @@
 import logging, subprocess
 
 from subprocess import call
+#from lxml import etree
 #
 log = logging.getLogger('manage-p2')
 
-#comparacion con la del año pasado: nombre es name, MV es VM
 class VM: 
   def __init__(self, name):
     self.name = name
     log.debug('init VM ' + self.name)
+  # def edit_xml(self):
+  #   template_xml = "plantilla-vm-pc1.xml"
+  #   output_xml = f"{self.name}.xml"
 
   def create_vm (self, image, interfaces):
     # nota: interfaces es un array de diccionarios de python
@@ -18,7 +21,7 @@ class VM:
     #que copie base-pc1.qcow2 y plantilla
     call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.name + ".qcow2"])
     call(["cp", "plantilla-vm-pc1.xml", self.name + ".xml"])
-    #falta xml
+   # edit_xml(self.name) #edit_xml está creado arriba: sin terminar
     call(["sudo", "virsh", "define", self.name + ".xml"])
 
     #
@@ -40,7 +43,6 @@ class VM:
   def destroy_vm (self):
     log.debug("destroy_vm " + self.name)
     call(["sudo", "virsh", "destroy", self.nombre])
-    call(["sudo", "virsh", "undefine", self.nombre])
 
 class NET:
   def __init__(self, name):
