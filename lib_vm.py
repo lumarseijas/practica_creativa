@@ -1,5 +1,7 @@
-import logging
+#import logging
 #
+import logging, subprocess
+
 from subprocess import call
 #
 log = logging.getLogger('manage-p2')
@@ -13,10 +15,12 @@ class VM:
   def create_vm (self, image, interfaces):
     # nota: interfaces es un array de diccionarios de python
     #       añadir los campos que se necesiten
-    #LU:
-    #campos a crear: que copie base-pc1.qcow2 y plantilla
+    #que copie base-pc1.qcow2 y plantilla
     call(["qemu-img","create", "-f", "qcow2", "-b", "./cdps-vm-base-pc1.qcow2",  self.name + ".qcow2"])
     call(["cp", "plantilla-vm-pc1.xml", self.name + ".xml"])
+    #falta xml
+    call(["sudo", "virsh", "define", self.name + ".xml"])
+
     #
     log.debug("create_vm " + self.name + " (image: " + image + ")")
     for i in interfaces:
@@ -24,15 +28,19 @@ class VM:
 
   def start_vm (self):
     log.debug("start_vm " + self.name)
+    call(["sudo", "virsh", "start", self.name])
 
   def show_console_vm (self):
     log.debug("show_console_vm " + self.name)
 
   def stop_vm (self):
     log.debug("stop_vm " + self.name)
+    call(["sudo", "virsh", "shutdown", self.name])
 
   def destroy_vm (self):
     log.debug("destroy_vm " + self.name)
+    call(["sudo", "virsh", "destroy", self.nombre])
+    call(["sudo", "virsh", "undefine", self.nombre])
 
 class NET:
   def __init__(self, name):
