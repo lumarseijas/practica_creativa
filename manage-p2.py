@@ -1,80 +1,79 @@
+#!/usr/bin/env python
+
+from lib_vm import VM, NET
+import logging
 import sys
-import os
-import subprocess
 
-# Directorios y nombres de archivos
+# Inicialización del log
+def init_log():
+    logging.basicConfig(level=logging.DEBUG)
+    log = logging.getLogger('manage-p2')
+    ch = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', "%Y-%m-%d %H:%M:%S")
+    ch.setFormatter(formatter)
+    log.addHandler(ch)
+    log.propagate = False
+    return log
+
+log = init_log()
+
+# Parámetros de configuración de las VMs
 base_image = "cdps-vm-base-pc1.qcow2"
-template_xml = "plantilla-vmpc1.xml"
 vm_names = ["C1", "Host", "S1", "S2", "S3"]
-networks = {"LAN1": "10.1.1.0/24", "LAN2": "10.1.2.0/24"}
 
+# Función para crear el escenario (create)
 def create():
-    print("Creando el escenario...")
+    log.info("Creando el escenario...")
     
-    # Crear los bridges virtuales para LAN1 y LAN2
-    create_bridge("LAN1")
-    create_bridge("LAN2")
+    # Crear redes (bridges) para LAN1 y LAN2
+    lan1 = NET("LAN1")
+    lan2 = NET("LAN2")
+    lan1.create()
+    lan2.create()
     
-    # Crear imágenes de diferencias y archivos XML para cada VM
+    # Configurar cada VM con su dirección IP
     for vm_name in vm_names:
-        create_diff_image(vm_name)
-        create_vm_xml(vm_name)
+        vm = VM(vm_name)
+        ifs = []
+        if vm_name in ["C1", "Host"]:
+            ifs.append({"addr": "10.1.1.{}".format(2 if vm_name == "C1" else 3), "mask": "255.255.255.0"})
+        else:
+            ifs.append({"addr": "10.1.2.{}".format(10 + int(vm_name[-1])), "mask": "255.255.255.0"})
+        
+        # Crear la VM con la imagen base y la configuración de interfaces
+        vm.create_vm(base_image, ifs)
+        log.info(f"Máquina virtual {vm_name} creada.")
 
+# Función para arrancar las VMs (start)
 def start():
-    print("Arrancando las máquinas virtuales...")
+    log.info("Arrancando las máquinas virtuales...")
     for vm_name in vm_names:
-        start_vm(vm_name)
+        vm = VM(vm_name)
+        vm.start_vm()
+        log.info(f"Máquina virtual {vm_name} arrancada.")
 
+# Función para parar las VMs (stop)
 def stop():
-    print("Parando las máquinas virtuales...")
+    log.info("Parando las máquinas virtuales...")
     for vm_name in vm_names:
-        stop_vm(vm_name)
+        vm = VM(vm_name)
+        vm.stop_vm()
+        log.info(f"Máquina virtual {vm_name} parada.")
 
+# Función para destruir las VMs (destroy)
 def destroy():
-    print("Destruyendo el escenario...")
+    log.info("Destruyendo el escenario...")
     for vm_name in vm_names:
-        destroy_vm(vm_name)
-    remove_bridges()
+        vm = VM(vm_name)
+        vm.destroy_vm()
+        log.info(f"Máquina virtual {vm_name} destruida.")
 
-def create_bridge(lan_name):
-    print(f"Creando bridge para {lan_name}...")
-    subprocess.run(["sudo", "brctl", "addbr", lan_name])
-    subprocess.run(["sudo", "ip", "link", "set", lan_name, "up"])
+    # Eliminar las redes
+    NET("LAN1").destroy()
+    NET("LAN2").destroy()
+    log.info("Redes LAN1 y LAN2 eliminadas.")
 
-def remove_bridges():
-    print("Eliminando bridges...")
-    for lan_name in networks.keys():
-        subprocess.run(["sudo", "ip", "link", "set", lan_name, "down"])
-        subprocess.run(["sudo", "brctl", "delbr", lan_name])
-
-def create_diff_image(vm_name):
-    diff_image = f"{vm_name}.qcow2"
-    print(f"Creando imagen diferencial {diff_image}...")
-    subprocess.run(["qemu-img", "create", "-f", "qcow2", "-b", base_image, diff_image])
-
-def create_vm_xml(vm_name):
-    vm_xml = f"{vm_name}.xml"
-    print(f"Creando archivo XML {vm_xml} basado en la plantilla...")
-    with open(template_xml) as template_file:
-        template_content = template_file.read()
-    vm_content = template_content.replace("VMPNAME", vm_name)
-    with open(vm_xml, "w") as vm_file:
-        vm_file.write(vm_content)
-
-def start_vm(vm_name):
-    print(f"Arrancando {vm_name}...")
-    subprocess.run(["sudo", "virsh", "create", f"{vm_name}.xml"])
-
-def stop_vm(vm_name):
-    print(f"Parando {vm_name}...")
-    subprocess.run(["sudo", "virsh", "destroy", vm_name])
-
-def destroy_vm(vm_name):
-    print(f"Eliminando archivos de {vm_name}...")
-    os.remove(f"{vm_name}.qcow2")
-    os.remove(f"{vm_name}.xml")
-
-# Ejecutar el script con el parámetro <orden>
+# Ejecución principal del script
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Uso: manage-p2.py <orden>")
@@ -92,5 +91,5 @@ if __name__ == "__main__":
     elif command == "destroy":
         destroy()
     else:
-        print("Orden desconocida. Usa create, start, stop o destroy.")
+        log.error("Orden desconocida. Usa create, start, stop o destroy.")
         sys.exit(1)
