@@ -19,10 +19,10 @@ def pause():
 with open('manage-p2.json', 'r') as file:
     data_json = json.load(file)
 
-if data_json["num_servidores"]>5 or data_json["num_servidores"]<1:
+if data_json["number_of_servers"]>5 or data_json["number_of_servers"]<1:
     print("Número de servidores inválido, introduzca en su archivo de configuración un número de servidores de 1 a 5.")
 else:
-    num_serv = data_json["num_servidores"]
+    num_serv = data_json["number_of_servers"]
 
 # debug = data_json["debug"]
 
